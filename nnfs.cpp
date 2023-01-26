@@ -26,25 +26,18 @@ std::ostream &operator<<(std::ostream &os, const dynamic_matrix &dm) noexcept
 }
 
 // Generates a random double between a minimum and maximum value
-// Modified from https://www.sololearn.com/discuss/1066086/how-can-i-generate-random-numbers-between-a-negative-and-positive-value
-// double random(const double &min, const double &max)
-// {
-
-//     std::random_device truly_random_seed;
-//     std::default_random_engine dank_engine(truly_random_seed());
-//     std::uniform_int_distribution<double> distribution(min, max);
-//     double random_number = distribution(dank_engine);
-
-//     std::cout << random_number << std::endl;
-
-//     return random_number;
-// }
-// Taken directly from https://github.com/Sentdex/NNfSiX/tree/master/C%2B%2B
-double random(const double &min, const double &max)
+// Taken directly from https://stackoverflow.com/a/35687575
+template <typename Numeric, typename Generator = std::mt19937>
+Numeric random(Numeric from, Numeric to)
 {
-    std::mt19937_64 rng{};
-    rng.seed(std::random_device{}());
-    return std::uniform_real_distribution<>{min, max}(rng);
+    thread_local static Generator gen(std::random_device{}());
+
+    using dist_type = typename std::conditional<
+        std::is_integral<Numeric>::value, std::uniform_int_distribution<Numeric>, std::uniform_real_distribution<Numeric>>::type;
+
+    thread_local static dist_type dist;
+
+    return dist(gen, typename dist_type::param_type{from, to});
 }
 
 // Used to transpose a matrix - specifically weights before applying matrix multiplication in order to produce a correct output
@@ -154,7 +147,7 @@ public:
         for (int j = 0; j < number_neurons; j++)
         {
             for (int i = 0; i < number_inputs; i++)
-                matrix_weights[i][j] = (random(-1.0, 1.0));
+                matrix_weights[i][j] = (random<double>(-1, 1));
         }
         std::cout << "\nInitial Weights\n"
                   << matrix_weights;
@@ -180,7 +173,6 @@ dynamic_matrix fixed_parameters(const dynamic_matrix &inputs, dynamic_matrix &ma
 
 int main()
 {
-    // dense_layer l2(5, 4);
 
     // Inputs denoted by X, as per ML standards
     dynamic_matrix X{
@@ -204,7 +196,8 @@ int main()
     std::cout << "\n\n"
               << l1.output();
 
-    // l2.forward(l1.output());
-    // std::cout << "\n"
-    //           << l2.output();
+    dense_layer l2(5, 4);
+    l2.forward(l1.output());
+    std::cout << "\n"
+              << l2.output();
 }
