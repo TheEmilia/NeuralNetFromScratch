@@ -6,29 +6,6 @@
 using dynamic_matrix = std::vector<std::vector<double>>;
 using dynamic_row = std::vector<double>;
 
-// Following https://www.youtube.com/playlist?list=PLQVvvaa0QuDcjD5BAw2DxE6OF2tius3V3
-// Using https://github.com/Sentdex/NNfSiX/tree/master/C%2B%2B for reference
-
-// Function to generate spiral data set
-// In python:
-// def spiral_data(points, classes):
-//     X = np.zeros((points*classes, 2))
-//     y = np.zeros(points*classes, dtype='uint8')
-//     for class_number in range(classes):
-//         ix = range(points*class_number, points*(class_number+1))
-//         r = np.linspace(0.0, 1, points)  # radius
-//         t = np.linspace(class_number*4, (class_number+1)*4, points) + np.random.randn(points)*0.2
-//         X[ix] = np.c_[r*np.sin(t*2.5), r*np.cos(t*2.5)]
-//         y[ix] = class_number
-//     return X, y
-// Neuron: function that returns a dot product of inputs and weights summed with a bias
-// Every neuron in a layer takes in the same inputs, but has different weights and bias, and thus returns different values
-
-// Activation Functions: A function that changes a neuron's actual output based on the calculated output
-// Step: return 1 if output>=0 else return 0
-// ReLU: return output if output>=0 else return 0
-// Sigmoid: return sigmoid of output (ie. 1/(1+e^-x))
-
 // Used to print out the contents of a dynamic matrix
 // Taken directly from https://github.com/Sentdex/NNfSiX/tree/master/C%2B%2B
 std::ostream &operator<<(std::ostream &os, const dynamic_matrix &dm) noexcept
@@ -57,28 +34,29 @@ Numeric random(Numeric from, Numeric to)
     return dist(gen, typename dist_type::param_type{from, to});
 }
 
-// Used to transpose a matrix - specifically weights before applying matrix multiplication in order to produce a correct output
-// Modified from https://github.com/Sentdex/NNfSiX/tree/master/C%2B%2B
-// No point in transposing weights - generate them to be the correct shape
-dynamic_matrix transpose(const dynamic_matrix &input_matrix) noexcept
-{
-    // creates matrix to store transposition result
-    dynamic_matrix output_matrix;
+// Following https://www.youtube.com/playlist?list=PLQVvvaa0QuDcjD5BAw2DxE6OF2tius3V3
+// Using https://github.com/Sentdex/NNfSiX/tree/master/C%2B%2B for reference
 
-    // For each column in the input matrix
-    for (int i = 0; i < input_matrix[0].size(); i++)
-    {
-        // insert an empty row for each inputted column
-        output_matrix.push_back({});
-        // for each row in the column
-        for (int j = 0; j < input_matrix.size(); j++)
-        {
-            // insert into the output matrix at the current row the value for the next input from the input column
-            output_matrix[i].push_back(input_matrix[j][i]);
-        }
-    }
-    return output_matrix;
-}
+// Function to generate spiral data set
+// In python:
+// def spiral_data(points, classes):
+//     X = np.zeros((points*classes, 2))
+//     y = np.zeros(points*classes, dtype='uint8')
+//     for class_number in range(classes):
+//         ix = range(points*class_number, points*(class_number+1))
+//         r = np.linspace(0.0, 1, points)  # radius
+//         t = np.linspace(class_number*4, (class_number+1)*4, points) + np.random.randn(points)*0.2
+//         X[ix] = np.c_[r*np.sin(t*2.5), r*np.cos(t*2.5)]
+//         y[ix] = class_number
+//     return X, y
+
+// Neuron: function that returns a dot product of inputs and weights summed with a bias
+// Every neuron in a layer takes in the same inputs, but has different weights and bias, and thus returns different values
+
+// Activation Functions: A function that changes a neuron's actual output based on the calculated output
+// Step: return 1 if output>=0 else return 0
+// ReLU: return output if output>=0 else return 0
+// Sigmoid: return sigmoid of output (ie. 1/(1+e^-x))
 
 // matrix multiplication
 // Modified from https://github.com/Sentdex/NNfSiX/tree/master/C%2B%2B
