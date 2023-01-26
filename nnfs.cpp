@@ -9,8 +9,25 @@ using dynamic_row = std::vector<double>;
 // Following https://www.youtube.com/playlist?list=PLQVvvaa0QuDcjD5BAw2DxE6OF2tius3V3
 // Using https://github.com/Sentdex/NNfSiX/tree/master/C%2B%2B for reference
 
+// Function to generate spiral data set
+// In python:
+// def spiral_data(points, classes):
+//     X = np.zeros((points*classes, 2))
+//     y = np.zeros(points*classes, dtype='uint8')
+//     for class_number in range(classes):
+//         ix = range(points*class_number, points*(class_number+1))
+//         r = np.linspace(0.0, 1, points)  # radius
+//         t = np.linspace(class_number*4, (class_number+1)*4, points) + np.random.randn(points)*0.2
+//         X[ix] = np.c_[r*np.sin(t*2.5), r*np.cos(t*2.5)]
+//         y[ix] = class_number
+//     return X, y
 // Neuron: function that returns a dot product of inputs and weights summed with a bias
 // Every neuron in a layer takes in the same inputs, but has different weights and bias, and thus returns different values
+
+// Activation Functions: A function that changes a neuron's actual output based on the calculated output
+// Step: return 1 if output>=0 else return 0
+// ReLU: return output if output>=0 else return 0
+// Sigmoid: return sigmoid of output (ie. 1/(1+e^-x))
 
 // Used to print out the contents of a dynamic matrix
 // Taken directly from https://github.com/Sentdex/NNfSiX/tree/master/C%2B%2B
@@ -60,8 +77,6 @@ dynamic_matrix transpose(const dynamic_matrix &input_matrix) noexcept
             output_matrix[i].push_back(input_matrix[j][i]);
         }
     }
-    std::cout << "\nTransposition\n"
-              << output_matrix;
     return output_matrix;
 }
 
@@ -96,8 +111,6 @@ dynamic_matrix operator*(const dynamic_matrix &inputs_matrix, const dynamic_matr
             output_matrix[i].push_back(result);
         }
     }
-    std::cout << "\nMatrix Multiplication\n"
-              << output_matrix;
     return output_matrix;
 }
 
@@ -120,10 +133,43 @@ dynamic_matrix operator+(const dynamic_matrix &matrix, const dynamic_row &row) n
             output_matrix[j].push_back(matrix[j][i] + row[i]);
         }
     }
-    std::cout << "\nMatrix Addition\n"
-              << output_matrix;
     return output_matrix;
 }
+
+// ReLU object
+class activation_ReLU
+{
+private:
+    dynamic_matrix output_matrix;
+
+public:
+    void forward(const dynamic_matrix &layer_matrix)
+    {
+        output_matrix = dynamic_matrix();
+        // For each row in the input matrix
+        for (int i = 0; i < layer_matrix.size(); i++)
+        {
+            // insert an empty row for each inputted column
+            output_matrix.push_back({});
+            // for each column in the row
+            for (int j = 0; j < layer_matrix[0].size(); j++)
+            {
+                double result = 0;
+                if (layer_matrix[i][j] > 0)
+                {
+                    result = layer_matrix[i][j];
+                }
+                // insert into the output matrix at the current row the value for the next input from the input column
+                output_matrix[i].push_back(result);
+            }
+        }
+    }
+
+    dynamic_matrix output() const
+    {
+        return output_matrix;
+    }
+};
 
 // Taken directly from https://github.com/Sentdex/NNfSiX/tree/master/C%2B%2B
 // Either load in a model ie. saved weights and biases from pre-built model
@@ -149,8 +195,6 @@ public:
             for (int i = 0; i < number_inputs; i++)
                 matrix_weights[i][j] = (random<double>(-1, 1));
         }
-        std::cout << "\nInitial Weights\n"
-                  << matrix_weights;
     }
 
     // pass forward the output of this layer
@@ -193,11 +237,20 @@ int main()
 
     dense_layer l1(4, 5);
     l1.forward(X);
-    std::cout << "\n\n"
+    std::cout << "\n"
               << l1.output();
 
+    activation_ReLU relu;
+    relu.forward(l1.output());
+    std::cout << "\n"
+              << relu.output();
+
     dense_layer l2(5, 4);
-    l2.forward(l1.output());
+    l2.forward(relu.output());
     std::cout << "\n"
               << l2.output();
+
+    relu.forward(l2.output());
+    std::cout << "\n"
+              << relu.output();
 }
