@@ -2,20 +2,31 @@
 #include <numeric>
 #include <vector>
 #include <random>
+#include <tuple>
 
 using dynamic_matrix = std::vector<std::vector<double>>;
 using dynamic_row = std::vector<double>;
 
+// Used to print out the contents of a dynamic row
+std::ostream &operator<<(std::ostream &os, const dynamic_row &dr)
+{
+    os << " [";
+    for (auto &item : dr)
+        os << item << " ";
+    os << "]\n";
+    return os;
+}
 // Used to print out the contents of a dynamic matrix
 // Taken directly from https://github.com/Sentdex/NNfSiX/tree/master/C%2B%2B
-std::ostream &operator<<(std::ostream &os, const dynamic_matrix &dm) noexcept
+// ostream << operator for matrix
+std::ostream &operator<<(std::ostream &os, const dynamic_matrix &dm)
 {
+    std::cout << "[\n";
     for (auto &row : dm)
     {
-        for (auto &item : row)
-            os << item << " ";
-        os << "\n";
+        os << row;
     }
+    std::cout << " ]";
     return os;
 }
 
@@ -36,19 +47,6 @@ Numeric random(Numeric from, Numeric to)
 
 // Following https://www.youtube.com/playlist?list=PLQVvvaa0QuDcjD5BAw2DxE6OF2tius3V3
 // Using https://github.com/Sentdex/NNfSiX/tree/master/C%2B%2B for reference
-
-// Function to generate spiral data set
-// In python:
-// def spiral_data(points, classes):
-//     X = np.zeros((points*classes, 2))
-//     y = np.zeros(points*classes, dtype='uint8')
-//     for class_number in range(classes):
-//         ix = range(points*class_number, points*(class_number+1))
-//         r = np.linspace(0.0, 1, points)  # radius
-//         t = np.linspace(class_number*4, (class_number+1)*4, points) + np.random.randn(points)*0.2
-//         X[ix] = np.c_[r*np.sin(t*2.5), r*np.cos(t*2.5)]
-//         y[ix] = class_number
-//     return X, y
 
 // Neuron: function that returns a dot product of inputs and weights summed with a bias
 // Every neuron in a layer takes in the same inputs, but has different weights and bias, and thus returns different values
@@ -114,6 +112,34 @@ dynamic_matrix operator+(const dynamic_matrix &matrix, const dynamic_row &row) n
     return output_matrix;
 }
 
+dynamic_row operator+(const dynamic_row &row1, const dynamic_row &row2)
+{
+    dynamic_row result_value(row1.begin(), row1.end());
+    for (size_t i = 0; i < result_value.size(); i++)
+        result_value[i] += row2[i];
+    return result_value;
+}
+
+// Function to generate spiral data set
+// Lightly modified from https://github.com/Sentdex/NNfSiX/tree/master/C%2B%2B
+std::tuple<dynamic_matrix, dynamic_row> spiral_data(const size_t &points, const size_t &classes)
+{
+    dynamic_matrix X(points * classes, dynamic_row(2, 0));
+    dynamic_row y(points * classes, 0);
+    double r, t;
+    for (size_t i = 0; i < classes; i++)
+    {
+        for (size_t j = 0; j < points; j++)
+        {
+            r = double(j) / double(points);
+            t = i * 4 + (4 * r);
+            X[i * points + j] = dynamic_row{r * cos(t * 2.5), r * sin(t * 2.5)} + dynamic_row{random<double>(-0.15, 0.15), random<double>(-0.15, 0.15)};
+            y[i * points + j] = i;
+        }
+    }
+    return std::make_tuple(X, y);
+}
+
 // ReLU object
 class activation_ReLU
 {
@@ -132,12 +158,8 @@ public:
             // for each column in the row
             for (int j = 0; j < layer_matrix[0].size(); j++)
             {
-                double result = 0;
-                if (layer_matrix[i][j] > 0)
-                {
-                    result = layer_matrix[i][j];
-                }
-                // insert into the output matrix at the current row the value for the next input from the input column
+                // insert into the output matrix the bigger of 0 and the layer's output
+                double result = std::max(0.0, layer_matrix[i][j]);
                 output_matrix[i].push_back(result);
             }
         }
@@ -195,12 +217,14 @@ dynamic_matrix fixed_parameters(const dynamic_matrix &inputs, dynamic_matrix &ma
 
 int main()
 {
+    // create spiral dataset
+    auto [X, y] = spiral_data(100, 3);
 
     // Inputs denoted by X, as per ML standards
-    dynamic_matrix X{
-        dynamic_row{1.0, 2.0, 3.0, 2.5},
-        dynamic_row{2.0, 5.0, -1.0, 2.0},
-        dynamic_row{-1.5, 2.7, 3.3, -0.8}};
+    // dynamic_matrix X{
+    //     dynamic_row{1.0, 2.0, 3.0, 2.5},
+    //     dynamic_row{2.0, 5.0, -1.0, 2.0},
+    //     dynamic_row{-1.5, 2.7, 3.3, -0.8}};
 
     dynamic_matrix weights{
         dynamic_row{0.2, 0.5, -0.26},
@@ -213,7 +237,7 @@ int main()
     std::cout << "\n"
               << test;
 
-    dense_layer l1(4, 5);
+    dense_layer l1(2, 5);
     l1.forward(X);
     std::cout << "\n"
               << l1.output();
