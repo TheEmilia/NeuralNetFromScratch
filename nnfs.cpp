@@ -1,142 +1,210 @@
 #include <iostream>
 #include <numeric>
 #include <vector>
+#include <random>
 
-using namespace std;
+using dynamic_matrix = std::vector<std::vector<double>>;
+using dynamic_row = std::vector<double>;
 
 // Following https://www.youtube.com/playlist?list=PLQVvvaa0QuDcjD5BAw2DxE6OF2tius3V3
+// Using https://github.com/Sentdex/NNfSiX/tree/master/C%2B%2B for reference
 
-// Neuron Code
-// Neuron: function that returns the sum of a number of inputs, multiplied by their respective weights, and a bias
-// Takes a vector of input values, a vector of weight values corresponding to those input values, and a bias
-// Returns a single value of type double
-// Every neuron in a layer takes in the same inputs, but has different weights and bias, and thus returns a different value
+// Neuron: function that returns a dot product of inputs and weights summed with a bias
+// Every neuron in a layer takes in the same inputs, but has different weights and bias, and thus returns different values
 
-// We know in advance the number of inputs and neurons per layer
-vector<vector<double>> inputs = {{1, 2, 3, 2.5}, {2.0, 5.0, -1.0, 2.0}, {-1.5, 2.7, 3.3, -0.8}};
-vector<vector<double>> weights = {{0.2, 0.8, -0.5, 1.0}, {0.5, -0.91, 0.26, -0.5}, {-0.26, -0.27, 0.17, 0.87}};
-vector<double> biases = {2, 3, 0.5};
-
-// Used to transpose weights before applying matrix multiplication in order to produce a correct output
-const vector<vector<double>> transposeMatrix(const vector<vector<double>> &input_matrix)
+// Used to print out the contents of a dynamic matrix
+// Taken directly from https://github.com/Sentdex/NNfSiX/tree/master/C%2B%2B
+std::ostream &operator<<(std::ostream &os, const dynamic_matrix &dm) noexcept
 {
-    // Number of inputs = number of weights per neuron
-    // Number of neurons = number of batches of weights
-    // Weight default: weights(x axis) by batches(y axis)
-    // Transpose to batches(x) by weights(y)
-
-    // Dimensions of input matrix
-    int row_count = input_matrix.size();
-    int column_count = input_matrix[0].size();
-
-    // Check for suitable dimensions otherwise throw an error
-    if (row_count <= 0 || column_count <= 0)
+    for (auto &row : dm)
     {
-        cout << "Shape Error, check dimensions of transposed matrix" << endl;
-        return input_matrix;
+        for (auto &item : row)
+            os << item << " ";
+        os << "\n";
     }
-
-    // Create empty matrix of the correct dimensions
-    vector<vector<double>> transposed_matrix(column_count, vector<double>(row_count, 0));
-
-    // Swap rows with columns  and set value in transposed matrix
-    for (int i = 0; i < column_count; ++i)
-    {
-        for (int j = 0; j < row_count; ++j)
-        {
-            transposed_matrix[i][j] = input_matrix[j][i];
-        }
-    }
-
-    return transposed_matrix;
+    return os;
 }
 
-// Acts as layer composed of inputs. matrix1 should be inputs, matrix2 should be transposed weights, and biases offset the calculated value for the corresponding neuron
-const vector<vector<double>> multiplyMatrices(const vector<vector<double>> &matrix_inputs, const vector<vector<double>> &matrix_weights, const vector<double> &biases)
+// Generates a random double between a minimum and maximum value
+// Modified from https://www.sololearn.com/discuss/1066086/how-can-i-generate-random-numbers-between-a-negative-and-positive-value
+// double random(const double &min, const double &max)
+// {
+
+//     std::random_device truly_random_seed;
+//     std::default_random_engine dank_engine(truly_random_seed());
+//     std::uniform_int_distribution<double> distribution(min, max);
+//     double random_number = distribution(dank_engine);
+
+//     std::cout << random_number << std::endl;
+
+//     return random_number;
+// }
+// Taken directly from https://github.com/Sentdex/NNfSiX/tree/master/C%2B%2B
+double random(const double &min, const double &max)
 {
-    // Dimensions of inputs matrix
-    int row_count_inputs = matrix_inputs.size();
-    int column_count_inputs = matrix_inputs[0].size();
+    std::mt19937_64 rng{};
+    rng.seed(std::random_device{}());
+    return std::uniform_real_distribution<>{min, max}(rng);
+}
 
-    // Dimensions of weights matrix
-    int row_count_weights = matrix_weights.size();
-    int column_count_weights = matrix_weights[0].size();
+// Used to transpose a matrix - specifically weights before applying matrix multiplication in order to produce a correct output
+// Modified from https://github.com/Sentdex/NNfSiX/tree/master/C%2B%2B
+// No point in transposing weights - generate them to be the correct shape
+dynamic_matrix transpose(const dynamic_matrix &input_matrix) noexcept
+{
+    // creates matrix to store transposition result
+    dynamic_matrix output_matrix;
 
-    // Check for suitable dimensions otherwise throw an error
-    if (row_count_inputs <= 0 || column_count_inputs <= 0 || column_count_weights <= 0 || row_count_weights <= 0)
+    // For each column in the input matrix
+    for (int i = 0; i < input_matrix[0].size(); i++)
     {
-        cout << "Shape Error, check dimensions of transposed matrix" << endl;
-        return matrix_inputs;
-    }
-    if (column_count_inputs != row_count_weights)
-    {
-        cout << "Shape Error, check dimensions of transposed matrix" << endl;
-        return matrix_inputs;
-    }
-
-    // Create empty matrix of the correct dimensions
-    vector<vector<double>> output_matrix(row_count_inputs, vector<double>(column_count_weights, 0));
-
-    for (int i = 0; i < row_count_inputs; ++i)
-    {
-        for (int j = 0; j < column_count_inputs; ++j)
+        // insert an empty row for each inputted column
+        output_matrix.push_back({});
+        // for each row in the column
+        for (int j = 0; j < input_matrix.size(); j++)
         {
-            output_matrix[i][j] = biases[j];
-            cout << i << ", " << j << ", " << output_matrix[i][j] << endl;
-            for (int k = 0; k < column_count_weights; ++k)
-            {
-                output_matrix[i][j] += matrix_inputs[i][k] * matrix_weights[k][j]; // CHeck to ensure correct multiplication is occurring
-            }
-            cout << i << ", " << j << ", " << output_matrix[i][j] << endl;
+            // insert into the output matrix at the current row the value for the next input from the input column
+            output_matrix[i].push_back(input_matrix[j][i]);
         }
     }
-
+    std::cout << "\nTransposition\n"
+              << output_matrix;
     return output_matrix;
 }
 
-// const vector<vector<double>> applyBiases(const vector<vector<double>> &matrix, const vector<double> &biases)
-// {
-//     // Dimensions of matrix - should always be square
-//     int side_length = matrix.size();
-
-//     vector<vector<double>> output_matrix = matrix;
-
-//     // traverses left to right then top to bottom
-//     for (int i = 0; i < side_length; ++i)
-//     {
-//         for (int j = 0; j < side_length; ++j)
-//         {
-//             output_matrix[i][j] += biases[j];
-//         }
-//     }
-
-//     return output_matrix;
-// }
-
-void printMatrix(vector<vector<double>> input_matrix)
+// matrix multiplication
+// Modified from https://github.com/Sentdex/NNfSiX/tree/master/C%2B%2B
+dynamic_matrix operator*(const dynamic_matrix &inputs_matrix, const dynamic_matrix &weights_matrix) noexcept
 {
+    // transposed version of the second matrix is created
+    // dynamic_matrix weights_matrix = transpose(weights_matrix);
+    // empty output matrix created
+    dynamic_matrix output_matrix;
 
-    int sides = input_matrix.size();
-
-    for (int i = 0; i < sides; ++i)
+    // for each row in the first matrix
+    for (int i = 0; i < inputs_matrix.size(); i++)
     {
-        for (int j = 0; j < sides; ++j)
+        // create an empty row for the results
+        output_matrix.push_back({});
+
+        // for each column in the transposed matrix
+        for (int j = 0; j < weights_matrix[0].size(); j++)
         {
-            cout << input_matrix[i][j] << " - ";
+            // result[row_a][column_b] = sum(matrix_a[row_a][k]*matrix_b[k][column_b]) for k=1 through n where n is the shared dimension
+            double result = 0;
+
+            // alternatively input_matrix[0].size()
+            for (int k = 0; k < weights_matrix.size(); k++)
+            {
+                result += inputs_matrix[i][k] * weights_matrix[k][j];
+            }
+
+            // insert into the result matrix at the current column the dot product of the first matrix and the transposed matrix
+            output_matrix[i].push_back(result);
         }
-        cout << endl;
     }
+    std::cout << "\nMatrix Multiplication\n"
+              << output_matrix;
+    return output_matrix;
+}
+
+// matrix vector addition
+// Modified from https://github.com/Sentdex/NNfSiX/tree/master/C%2B%2B
+dynamic_matrix operator+(const dynamic_matrix &matrix, const dynamic_row &row) noexcept
+{
+    dynamic_matrix output_matrix;
+
+    // for each row in the input matrix
+    for (int j = 0; j < matrix.size(); j++)
+    {
+        // insert an empty row in the output matrix
+        output_matrix.push_back({});
+
+        // for each column in the input matrix
+        for (int i = 0; i < matrix[0].size(); i++)
+        {
+            // insert into the output matrix the input matrix's value plus the bias in the corresponding column
+            output_matrix[j].push_back(matrix[j][i] + row[i]);
+        }
+    }
+    std::cout << "\nMatrix Addition\n"
+              << output_matrix;
+    return output_matrix;
+}
+
+// Taken directly from https://github.com/Sentdex/NNfSiX/tree/master/C%2B%2B
+// Either load in a model ie. saved weights and biases from pre-built model
+// Or initialise weights and biases at random
+// Biases to a non-zero number (can result in a "dead network" otherwise), weights to non-zero number between 1 and -1
+// FIXME When class is used, terminal stops outputting anything
+class dense_layer
+{
+private:
+    dynamic_matrix matrix_weights, matrix_output;
+    dynamic_row matrix_biases;
+
+public:
+    // constructor for the layer
+    // Takes in a number of inputs, a number of neurons, and then creates a matrix of weights which then are initialised
+    dense_layer(const int &number_inputs, const int &number_neurons)
+        : matrix_weights(number_inputs, dynamic_row(number_neurons)),
+          matrix_biases(number_neurons, 1.0)
+    {
+        // For each
+        for (int j = 0; j < number_neurons; j++)
+        {
+            for (int i = 0; i < number_inputs; i++)
+                matrix_weights[i][j] = (random(-1.0, 1.0));
+        }
+        std::cout << "\nInitial Weights\n"
+                  << matrix_weights;
+    }
+
+    // pass forward the output of this layer
+    void forward(const dynamic_matrix &inputs)
+    {
+        matrix_output = inputs * matrix_weights + matrix_biases;
+    }
+
+    dynamic_matrix output() const
+    {
+        return matrix_output;
+    }
+};
+
+dynamic_matrix fixed_parameters(const dynamic_matrix &inputs, dynamic_matrix &matrix_weights, dynamic_row &matrix_biases)
+{
+    dynamic_matrix matrix_output = inputs * matrix_weights + matrix_biases;
+    return matrix_output;
 }
 
 int main()
 {
-    const vector<vector<double>> transposed_weights = transposeMatrix(weights);
-    const vector<vector<double>> output = multiplyMatrices(inputs, transposed_weights, biases);
+    // dense_layer l2(5, 4);
 
-    // vector<vector<double>> output = applyBiases(output, biases);
-    // Biases still need to be applied
-    // doesn't print output values when run
-    cout << endl;
-    cout << "TEST" << endl;
-    // printMatrix(output);
+    // Inputs denoted by X, as per ML standards
+    dynamic_matrix X{
+        dynamic_row{1.0, 2.0, 3.0, 2.5},
+        dynamic_row{2.0, 5.0, -1.0, 2.0},
+        dynamic_row{-1.5, 2.7, 3.3, -0.8}};
+
+    dynamic_matrix weights{
+        dynamic_row{0.2, 0.5, -0.26},
+        dynamic_row{0.8, -0.91, -0.27},
+        dynamic_row{-0.5, 0.26, 0.17},
+        dynamic_row{1.0, -0.5, 0.87}};
+
+    dynamic_row biases = {2.0, 3.0, 0.5};
+    dynamic_matrix test = fixed_parameters(X, weights, biases);
+    std::cout << "\n"
+              << test;
+
+    dense_layer l1(4, 5);
+    l1.forward(X);
+    std::cout << "\n\n"
+              << l1.output();
+
+    // l2.forward(l1.output());
+    // std::cout << "\n"
+    //           << l2.output();
 }
