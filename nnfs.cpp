@@ -1,8 +1,8 @@
 #include <iostream>
 #include <numeric>
-#include <vector>
 #include <random>
 #include <tuple>
+#include <vector>
 
 using dynamic_matrix = std::vector<std::vector<double>>;
 using dynamic_row = std::vector<double>;
@@ -37,28 +37,33 @@ Numeric random(Numeric from, Numeric to)
 {
     thread_local static Generator gen(std::random_device{}());
 
-    using dist_type = typename std::conditional<
-        std::is_integral<Numeric>::value, std::uniform_int_distribution<Numeric>, std::uniform_real_distribution<Numeric>>::type;
+    using dist_type =
+        typename std::conditional<std::is_integral<Numeric>::value,
+                                  std::uniform_int_distribution<Numeric>,
+                                  std::uniform_real_distribution<Numeric>>::type;
 
     thread_local static dist_type dist;
 
     return dist(gen, typename dist_type::param_type{from, to});
 }
 
-// Following https://www.youtube.com/playlist?list=PLQVvvaa0QuDcjD5BAw2DxE6OF2tius3V3
+// Following
+// https://www.youtube.com/playlist?list=PLQVvvaa0QuDcjD5BAw2DxE6OF2tius3V3
 // Using https://github.com/Sentdex/NNfSiX/tree/master/C%2B%2B for reference
 
-// Neuron: function that returns a dot product of inputs and weights summed with a bias
-// Every neuron in a layer takes in the same inputs, but has different weights and bias, and thus returns different values
+// Neuron: function that returns a dot product of inputs and weights summed with
+// a bias Every neuron in a layer takes in the same inputs, but has different
+// weights and bias, and thus returns different values
 
-// Activation Functions: A function that changes a neuron's actual output based on the calculated output
-// Step: return 1 if output>=0 else return 0
-// ReLU: return output if output>=0 else return 0
-// Sigmoid: return sigmoid of output (ie. 1/(1+e^-x))
+// Activation Functions: A function that changes a neuron's actual output based
+// on the calculated output Step: return 1 if output>=0 else return 0 ReLU:
+// return output if output>=0 else return 0 Sigmoid: return sigmoid of output
+// (ie. 1/(1+e^-x)) Softmax:
 
 // matrix multiplication
 // Modified from https://github.com/Sentdex/NNfSiX/tree/master/C%2B%2B
-dynamic_matrix operator*(const dynamic_matrix &inputs_matrix, const dynamic_matrix &weights_matrix) noexcept
+dynamic_matrix operator*(const dynamic_matrix &inputs_matrix,
+                         const dynamic_matrix &weights_matrix) noexcept
 {
     // transposed version of the second matrix is created
     // dynamic_matrix weights_matrix = transpose(weights_matrix);
@@ -74,7 +79,8 @@ dynamic_matrix operator*(const dynamic_matrix &inputs_matrix, const dynamic_matr
         // for each column in the transposed matrix
         for (int j = 0; j < weights_matrix[0].size(); j++)
         {
-            // result[row_a][column_b] = sum(matrix_a[row_a][k]*matrix_b[k][column_b]) for k=1 through n where n is the shared dimension
+            // result[row_a][column_b] = sum(matrix_a[row_a][k]*matrix_b[k][column_b])
+            // for k=1 through n where n is the shared dimension
             double result = 0;
 
             // alternatively input_matrix[0].size()
@@ -83,7 +89,8 @@ dynamic_matrix operator*(const dynamic_matrix &inputs_matrix, const dynamic_matr
                 result += inputs_matrix[i][k] * weights_matrix[k][j];
             }
 
-            // insert into the result matrix at the current column the dot product of the first matrix and the transposed matrix
+            // insert into the result matrix at the current column the dot product of
+            // the first matrix and the transposed matrix
             output_matrix[i].push_back(result);
         }
     }
@@ -92,7 +99,8 @@ dynamic_matrix operator*(const dynamic_matrix &inputs_matrix, const dynamic_matr
 
 // matrix vector addition
 // Modified from https://github.com/Sentdex/NNfSiX/tree/master/C%2B%2B
-dynamic_matrix operator+(const dynamic_matrix &matrix, const dynamic_row &row) noexcept
+dynamic_matrix operator+(const dynamic_matrix &matrix,
+                         const dynamic_row &row) noexcept
 {
     dynamic_matrix output_matrix;
 
@@ -105,7 +113,8 @@ dynamic_matrix operator+(const dynamic_matrix &matrix, const dynamic_row &row) n
         // for each column in the input matrix
         for (int i = 0; i < matrix[0].size(); i++)
         {
-            // insert into the output matrix the input matrix's value plus the bias in the corresponding column
+            // insert into the output matrix the input matrix's value plus the bias in
+            // the corresponding column
             output_matrix[j].push_back(matrix[j][i] + row[i]);
         }
     }
@@ -122,7 +131,8 @@ dynamic_row operator+(const dynamic_row &row1, const dynamic_row &row2)
 
 // Function to generate spiral data set
 // Lightly modified from https://github.com/Sentdex/NNfSiX/tree/master/C%2B%2B
-std::tuple<dynamic_matrix, dynamic_row> spiral_data(const size_t &points, const size_t &classes)
+std::tuple<dynamic_matrix, dynamic_row> spiral_data(const size_t &points,
+                                                    const size_t &classes)
 {
     dynamic_matrix X(points * classes, dynamic_row(2, 0));
     dynamic_row y(points * classes, 0);
@@ -133,7 +143,9 @@ std::tuple<dynamic_matrix, dynamic_row> spiral_data(const size_t &points, const 
         {
             r = double(j) / double(points);
             t = i * 4 + (4 * r);
-            X[i * points + j] = dynamic_row{r * cos(t * 2.5), r * sin(t * 2.5)} + dynamic_row{random<double>(-0.15, 0.15), random<double>(-0.15, 0.15)};
+            X[i * points + j] =
+                dynamic_row{r * cos(t * 2.5), r * sin(t * 2.5)} +
+                dynamic_row{random<double>(-0.15, 0.15), random<double>(-0.15, 0.15)};
             y[i * points + j] = i;
         }
     }
@@ -165,16 +177,14 @@ public:
         }
     }
 
-    dynamic_matrix output() const
-    {
-        return output_matrix;
-    }
+    dynamic_matrix output() const { return output_matrix; }
 };
 
 // Taken directly from https://github.com/Sentdex/NNfSiX/tree/master/C%2B%2B
 // Either load in a model ie. saved weights and biases from pre-built model
 // Or initialise weights and biases at random
-// Biases to a non-zero number (can result in a "dead network" otherwise), weights to non-zero number between 1 and -1
+// Biases to a non-zero number (can result in a "dead network" otherwise),
+// weights to non-zero number between 1 and -1
 // FIXME When class is used, terminal stops outputting anything
 class dense_layer
 {
@@ -184,7 +194,8 @@ private:
 
 public:
     // constructor for the layer
-    // Takes in a number of inputs, a number of neurons, and then creates a matrix of weights which then are initialised
+    // Takes in a number of inputs, a number of neurons, and then creates a matrix
+    // of weights which then are initialised
     dense_layer(const int &number_inputs, const int &number_neurons)
         : matrix_weights(number_inputs, dynamic_row(number_neurons)),
           matrix_biases(number_neurons, 1.0)
@@ -203,13 +214,12 @@ public:
         matrix_output = inputs * matrix_weights + matrix_biases;
     }
 
-    dynamic_matrix output() const
-    {
-        return matrix_output;
-    }
+    dynamic_matrix output() const { return matrix_output; }
 };
 
-dynamic_matrix fixed_parameters(const dynamic_matrix &inputs, dynamic_matrix &matrix_weights, dynamic_row &matrix_biases)
+dynamic_matrix fixed_parameters(const dynamic_matrix &inputs,
+                                dynamic_matrix &matrix_weights,
+                                dynamic_row &matrix_biases)
 {
     dynamic_matrix matrix_output = inputs * matrix_weights + matrix_biases;
     return matrix_output;
@@ -227,10 +237,8 @@ int main()
     //     dynamic_row{-1.5, 2.7, 3.3, -0.8}};
 
     dynamic_matrix weights{
-        dynamic_row{0.2, 0.5, -0.26},
-        dynamic_row{0.8, -0.91, -0.27},
-        dynamic_row{-0.5, 0.26, 0.17},
-        dynamic_row{1.0, -0.5, 0.87}};
+        dynamic_row{0.2, 0.5, -0.26}, dynamic_row{0.8, -0.91, -0.27},
+        dynamic_row{-0.5, 0.26, 0.17}, dynamic_row{1.0, -0.5, 0.87}};
 
     dynamic_row biases = {2.0, 3.0, 0.5};
     dynamic_matrix test = fixed_parameters(X, weights, biases);
