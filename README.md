@@ -133,6 +133,7 @@ Project Link: [https://github.com/TheEmilia/NeuralNetFromScratch](https://github
 ## Acknowledgments
 
 - [Harrison](https://github.com/Sentdex) for the Series on Neural Networks, and for the NNFSiX repository, which has been a very useful reference
+- [Othneil Drew](https://github.com/othneildrew/Best-README-Template/blob/master/BLANK_README.md) for the template used for this README
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
